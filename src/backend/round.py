@@ -54,7 +54,7 @@ class Round:
             raise ValueError(f"It's not {player.name}'s turn.")
         if not trick.is_legal(player, card):
             raise ValueError(f"{card} is not a legal play.")
-        trick.add_play(player, card)
+        trick.add_play(player, player.play_card(card))
 
     @property
     def trick_is_complete(self) -> bool:
