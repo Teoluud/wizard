@@ -40,6 +40,14 @@ class Player:
             self._points -= abs(self._call - self._tricks_won)
 
     @property
+    def call(self) -> int | None:
+        return self._call
+
+    @property
+    def tricks_won(self) -> int:
+        return self._tricks_won
+
+    @property
     def points(self) -> int:
         return self._points
 

@@ -57,6 +57,11 @@ class Round:
         trick.add_play(player, player.play_card(card))
 
     @property
+    def trick_plays(self) -> list[tuple[Player, Card]]:
+        """The cards played so far in the current trick, in play order."""
+        return list(self._get_trick().plays)
+
+    @property
     def trick_is_complete(self) -> bool:
         return self._get_trick().is_complete
 
