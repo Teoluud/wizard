@@ -39,5 +39,14 @@ class Player:
         else:
             self._points -= abs(self._call - self._tricks_won)
 
+    @property
+    def points(self) -> int:
+        return self._points
+
+    def reset_for_round(self) -> None:
+        self.cards = []
+        self._tricks_won = 0
+        self._call = None
+
     def __str__(self) -> str:
         return self.name + ": " + str(self._points)
