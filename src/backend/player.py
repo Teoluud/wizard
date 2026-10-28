@@ -23,6 +23,9 @@ class Player:
         self.cards.remove(card)
         return card
 
+    def remove_card_from_hand(self, card: Card) -> None:
+        self.cards.remove(card)
+
     def win_trick(self) -> None:
         self._tricks_won += 1
 
