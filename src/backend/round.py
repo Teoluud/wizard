@@ -4,7 +4,7 @@ from src.backend.cards import Card, Color, Deck, Wizard
 from src.backend.player import Player
 from src.backend.rules import Direction, PassRule, RoundRules, Visibility
 from src.backend.trick import Trick
-from src.backend.view import PlayerView, Trump
+from src.backend.view import PlayerStatus, PlayerView, Trump
 
 
 class Phase(Enum):
@@ -95,26 +95,30 @@ class Round:
             return self.rules.play_visibility
         return self.rules.call_visibility
 
-    def visible_hands(self, viewer: Player) -> list[tuple[Player, list[Card]]]:
-        """The hands `viewer` may look at right now."""
+    def visible_hands(self, viewer: Player) -> list[tuple[str, list[Card]]]:
+        """The hands `viewer` may look at right now, as (owner_name, cards)."""
         visibility = self._current_visibility()
         if visibility is Visibility.OWN:
-            return [(viewer, list(viewer.cards))]
+            return [(viewer.name, list(viewer.cards))]
         if visibility is Visibility.OTHERS:
             return [
-                (p, list(p.cards)) for p in self.players if p is not viewer and p.cards
+                (p.name, list(p.cards))
+                for p in self.players
+                if p is not viewer and p.cards
             ]
         return []
 
     def view_for(self, player: Player) -> PlayerView:
-        """Snapshot of what `player` is allowed to see."""
-        table = list(self.trick.plays) if self.trick is not None else []
+        """Snapshot of what `player` is allowed to see (plain data, no Players)."""
+        plays = self.trick.plays if self.trick is not None else []
         return PlayerView(
-            player=player,
+            player_name=player.name,
             round_number=self.number,
+            dealer_name=self.dealer.name,
             trump=self.trump,
+            players=[PlayerStatus.of(p) for p in self.players],
             hands=self.visible_hands(player),
-            table=table,
+            table=[(p.name, card) for p, card in plays],
         )
 
     def forbidden_call(self, player: Player) -> int | None:
@@ -159,21 +163,25 @@ class Round:
         index = self.players.index(player)
         return self.players[(index + step) % len(self.players)]
 
-    def pass_cards(self, passes: dict[Player, list[Card]]) -> None:
-        """Everybody passes their chosen cards at the same time."""
+    def check_pass(self, player: Player, chosen: list[Card]) -> None:
+        """Raises ValueError unless `chosen` is a valid pass for `player`."""
         rule = self.pending_pass
         if rule is None:
             raise ValueError("There are no cards to pass right now.")
+        hand = list(player.cards)
+        for card in chosen:
+            if card not in hand:
+                raise ValueError(f"{player.name} doesn't have {card}.")
+            hand.remove(card)
 
+    def pass_cards(self, passes: dict[Player, list[Card]]) -> None:
+        """Everybody passes their chosen cards at the same time."""
+        # Validate everybody first, so a bad pass can't leave a half-done swap.
         for player in self.players:
             chosen = passes.get(player)
-            if chosen is None or len(chosen) != rule.count:
-                raise ValueError(f"{player.name} must pass exactly {rule.count} cards.")
-            hand = list(player.cards)
-            for card in chosen:
-                if card not in hand:
-                    raise ValueError(f"{player.name} doesn't have {card}.")
-                hand.remove(card)
+            if chosen is None:
+                raise ValueError(f"{player.name} didn't choose cards to pass.")
+            self.check_pass(player, chosen)
 
         received: dict[Player, list[Card]] = {p: [] for p in self.players}
         for player in self.players:
@@ -192,6 +200,8 @@ class Round:
         trick = self._get_trick()
         if player is not trick.current_player:
             raise ValueError(f"It's not {player.name}'s turn.")
+        if card not in player.cards:
+            raise ValueError(f"{player.name} doesn't have {card}.")
         if not trick.is_legal(player, card):
             raise ValueError(f"{card} is not a legal play.")
         trick.add_play(player, player.play_card(card))

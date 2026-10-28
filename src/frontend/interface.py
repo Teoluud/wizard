@@ -16,7 +16,7 @@ class GameInterface(Protocol):
     def ask_call(self, view: PlayerView, forbidden_call: int | None) -> int: ...
 
     def ask_card_to_pass(
-        self, view: PlayerView, rule: PassRule, recipient: Player
+        self, view: PlayerView, rule: PassRule, recipient_name: str
     ) -> list[Card]:
         """Returns the `rule.count` cards the player gives to `recipient`."""
         ...
@@ -24,7 +24,7 @@ class GameInterface(Protocol):
     def ask_card(self, view: PlayerView, legal_cards: list[Card]) -> Card: ...
 
     def show_trick_winner(
-        self, winner: Player, table: list[tuple[Player, Card]]
+        self, winner: Player, table: list[tuple[str, Card]]
     ) -> None: ...
 
     def show_scores(self, players: list[Player]) -> None: ...
