@@ -54,7 +54,7 @@ class Deck:
         for _ in range(4):
             self.cards.append(Wizard())
             self.cards.append(Jester())
-            
+
         self._shuffle()
 
     def __len__(self):

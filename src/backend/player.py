@@ -12,7 +12,7 @@ class Player:
 
     def add_card_to_hand(self, card: Card) -> None:
         self.cards.append(card)
-    
+
     def call_tricks(self, tricks: int) -> None:
         if tricks >= 0:
             self._call = tricks
@@ -36,7 +36,7 @@ class Player:
         """
         if self._call is None:
             raise ValueError("Can't update points if there was no call.")
-        
+
         if self._tricks_won == self._call:
             self._points += self._call + 2
         else:

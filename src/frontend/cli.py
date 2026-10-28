@@ -44,7 +44,9 @@ class CliInterface:
             else:
                 return call
 
-    def ask_card_to_pass(self, view: PlayerView, rule: PassRule, recipient: Player) -> list[Card]:
+    def ask_card_to_pass(
+        self, view: PlayerView, rule: PassRule, recipient: Player
+    ) -> list[Card]:
         self._hand_over_to(view.player)
         print(f"=== Round {view.round_number} ===")
         print(f"Your call: {view.player.call}")
