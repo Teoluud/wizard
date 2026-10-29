@@ -85,7 +85,7 @@ def _calibration_exponent(values: Sequence[float], target_mean: float) -> float:
     """The power g >= 1 that makes the average of `v ** g` equal `target_mean`."""
     if sum(values) / len(values) <= target_mean:
         return 1.0
-    low, high = 1.0, 3.0
+    low, high = 1.0, 30.0
     for _ in range(40):
         middle = (low + high) / 2
         if sum(v**middle for v in values) / len(values) > target_mean:
