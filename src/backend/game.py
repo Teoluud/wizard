@@ -157,8 +157,8 @@ class Game:
         """
         last_error: ValueError | None = None
         for _ in range(MAX_ATTEMPTS):
-            answer = await ask()
             try:
+                answer = await ask()
                 apply(answer)
             except ValueError as error:
                 last_error = error

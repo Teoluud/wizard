@@ -6,9 +6,10 @@ Example (3-player game with 1 human and 2 heuristic bots):
 
 import argparse
 import asyncio
+import random
 
 from src.ai.tournament import KINDS
-from src.ai.game_log import GameLog
+from src.frontend.game_log import GameLog
 from src.backend.agents import PlayerAgent
 from src.backend.cards import Deck
 from src.backend.game import Game
@@ -57,16 +58,13 @@ class GameServer:
         async with server:
             await self._lobby_ready.wait()
             players, agents = self._build_table()
-            print(
-                "Table ready: " + ", ".join(p.name for p in players)
-            )
+            print("Table ready: " + ", ".join(p.name for p in players))
             game = Game(players, Deck(self.seed), agents, observers=[GameLog()])
             try:
                 await game.play()
             finally:
                 for remote in self._remote_agents.values():
                     await remote.close()
-            
 
     async def _handle_client(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
@@ -84,7 +82,7 @@ class GameServer:
             await stream.send({"kind": "error", "message": problem})
             await stream.close()
             return
-        
+
         # No awaits between the checks above and this line, so two clients can't race.
         self._remote_agents[name] = RemotePlayerAgent(name, stream)
         await stream.send(
@@ -130,7 +128,8 @@ class GameServer:
                 bot_name = f"{self.bot_kind}-{i}"
             players.append(Player(bot_name))
             agents[bot_name] = KINDS[self.bot_kind](base_seed * 100 + i)
-
+        # Avoid humans always getting the first seats
+        random.shuffle(players)
         return players, agents
 
 

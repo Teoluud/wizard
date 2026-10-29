@@ -39,7 +39,7 @@ def describe_scores(scores: list[PlayerStatus]) -> str:
 
 
 class GameLog:
-    """An observer that prints the game as a play-by-play, to watch the bots."""
+    """An observer that prints the game as a play-by-play."""
 
     async def on_event(self, event: GameEvent) -> None:
         match event:

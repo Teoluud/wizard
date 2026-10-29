@@ -18,7 +18,7 @@ from src.network.protocol import JsonCodec, JsonStream
 class GameClient:
     """Connects to a `GameServer` and delegates decisions to a local `PlayerAgent`."""
 
-    def __init__(self, host: str, port: str, name: str, agent: PlayerAgent) -> None:
+    def __init__(self, host: str, port: int, name: str, agent: PlayerAgent) -> None:
         self.host = host
         self.port = port
         self.name = name
@@ -73,7 +73,7 @@ class GameClient:
                 card = await self.agent.ask_card(view, legal_cards)
                 return {"kind": "response", "card": card.to_dict()}
             case _:
-                raise ValueError(f"Unkown server request action: {action}")
+                raise ValueError(f"Unknown server request action: {action}")
 
 
 def main() -> None:

@@ -1,5 +1,5 @@
 
-from src.ai.game_log import describe_card, describe_trump
+from src.frontend.game_log import describe_card, describe_trump
 from src.backend.events import (
     CallMade,
     CardsPassed,

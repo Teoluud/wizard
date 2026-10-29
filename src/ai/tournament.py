@@ -12,7 +12,7 @@ import statistics
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 
-from src.ai.game_log import GameLog
+from src.frontend.game_log import GameLog
 from src.ai.heuristic_agent import HeuristicAgent, TestHeuristicAgent
 from src.ai.random_agent import RandomAgent
 from src.backend.agents import PlayerAgent

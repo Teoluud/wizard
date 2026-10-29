@@ -74,7 +74,7 @@ def hold_chance(
     card: Card, unseen: Sequence[Card], trump: Color | None, opponents_left: int
 ) -> float:
     """The chance that `card` is still winning after `opponents_left` more cards.
-    
+
     Each of them is treated as a random unseen card. Roughly right, since the
     opponents don't know our hand and are bound to follow suit.
     """
@@ -92,12 +92,14 @@ def _calibration_exponent(values: Sequence[float], target_mean: float) -> float:
             low = middle
         else:
             high = middle
-    return high # the values are probabilities (< 1)
+    return high  # the values are probabilities (< 1)
 
 
-def expected_tricks(hand: Sequence[Card], unseen: Sequence[Card], trump: Color | None, opponents: int) -> float:
+def expected_tricks(
+    hand: Sequence[Card], unseen: Sequence[Card], trump: Color | None, opponents: int
+) -> float:
     """How many tricks `hand` should win, adding up what each card can do.
-    
+
     Treating every card as if it led the trick is too optimistic: an average
     hand would be worth more than its fair share of (hand size / players) tricks. So the
     chances are shrunk (raised to a power) until an average card is worth
@@ -105,14 +107,16 @@ def expected_tricks(hand: Sequence[Card], unseen: Sequence[Card], trump: Color |
     """
     pool = [hold_chance(card, unseen, trump, opponents) for card in (*unseen, *hand)]
     exponent = _calibration_exponent(pool, 1 / (opponents + 1))
-    total = sum(hold_chance(card, unseen, trump, opponents) ** exponent for card in hand)
+    total = sum(
+        hold_chance(card, unseen, trump, opponents) ** exponent for card in hand
+    )
     return min(total, float(len(hand)))
 
 
 def blind_win_chance(view: PlayerView, unseen: Sequence[Card]) -> float | None:
     """The chance of winning the single trick of round 1, when you see the others'.
-    
-    Tries every unseen card as or own hidden one. Returns None if the view isn't
+
+    Tries every unseen card as our own hidden one. Returns None if the view isn't
     a round where everybody holds one card and we see all the others'.
     """
     others = dict(view.hands)
