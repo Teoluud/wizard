@@ -1,3 +1,10 @@
+"""Plays many seeded games between bots and compares how they score.
+
+python -m src.ai.tournament                          # heuristic vs 2 random
+python -m src.ai.tournament --watch 7                # one game, play-by-play
+python -m src.ai.tournament --lineup heuristic heuristic random --games 300
+"""
+
 import argparse
 import asyncio
 import math
@@ -6,6 +13,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 
 from src.ai.game_log import GameLog
+from src.ai.heuristic_agent import HeuristicAgent
 from src.ai.random_agent import RandomAgent
 from src.backend.agents import PlayerAgent
 from src.backend.cards import Deck
@@ -15,7 +23,10 @@ from src.backend.player import Player
 # A bot kind builds a fresh agent for a game, given a seed for its own randomness.
 AgentFactory = Callable[[int], PlayerAgent]
 
-KINDS: dict[str, AgentFactory] = {"random": lambda seed: RandomAgent(seed)}
+KINDS: dict[str, AgentFactory] = {
+    "random": lambda seed: RandomAgent(seed),
+    "heuristic": lambda seed: HeuristicAgent(),
+}
 
 
 @dataclass
@@ -48,7 +59,7 @@ def _seat_names(kinds: Sequence[str]) -> list[str]:
 
 
 async def play_game(
-        kinds: Sequence[str], seed: int, observers: Sequence[GameLog] = ()
+    kinds: Sequence[str], seed: int, observers: Sequence[GameLog] = ()
 ) -> list[Player]:
     """Plays one game with one bot per entry of `kinds`, and returns the players."""
     names = _seat_names(kinds)
@@ -69,7 +80,7 @@ def seating_for(kinds: Sequence[str], game: int) -> list[str]:
 
 def run_tournament(kinds: Sequence[str], games: int, seed: int = 0) -> list[Standing]:
     """Plays `games` games, rotating the seats so no bot is always in the same one.
-    
+
     The same `seed` gives the same tournament: game i uses the deck seed `seed + i`.
     """
     standings = {kind: Standing(kind) for kind in dict.fromkeys(kinds)}
@@ -91,7 +102,10 @@ def run_tournament(kinds: Sequence[str], games: int, seed: int = 0) -> list[Stan
 
 def format_standings(standings: Sequence[Standing], games: int) -> str:
     # align everything
-    lines = [f"{games} games", f"{'bot':<12}{'avg points':>12}{'± error':>10}{'wins':>8}"]
+    lines = [
+        f"{games} games",
+        f"{'bot':<12}{'avg points':>12}{'± error':>10}{'wins':>8}",
+    ]
     for s in sorted(standings, key=lambda s: s.mean, reverse=True):
         lines.append(
             f"{s.kind:<12}{s.mean:>12.1f}{s.standard_error:>10.1f}"
@@ -106,10 +120,10 @@ def main() -> None:
         "--lineup",
         nargs="+",
         choices=sorted(KINDS),
-        default=["random", "random", "random"],
-        help="the bot in each seat (default: random random random)"
+        default=["heuristic", "random", "random"],
+        help="the bot in each seat (default: heuristic random random)",
     )
-    parser.add_argument("--games", type=int, default=10)
+    parser.add_argument("--games", type=int, default=300)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument(
         "--watch", type=int, metavar="SEED", help="play one game and print it"
