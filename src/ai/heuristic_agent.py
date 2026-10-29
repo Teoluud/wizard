@@ -73,7 +73,9 @@ class HeuristicAgent:
         allowed = [c for c in range(view.round_number + 1) if c != forbidden_call]
         return min(allowed, key=lambda call: (abs(call - expected), call))
 
-    async def ask_card_to_pass(self, view: PlayerView, rule: PassRule, recipient: str) -> list[Card]:
+    async def ask_card_to_pass(
+        self, view: PlayerView, rule: PassRule, recipient: str
+    ) -> list[Card]:
         hand = view.own_hand
         if hand is None:
             raise ValueError("Can't choose cards to pass without seeing them.")
@@ -105,8 +107,18 @@ class HeuristicAgent:
         status = view.status
         needed = (status.call or 0) - status.tricks_won
         if needed > 0:
-            cards_left = len(view.own_hand or legal_cards)
-            return self._play_to_win(legal_cards, hold, power, must=needed >= cards_left)
+            hand = view.own_hand or legal_cards
+            # How many tricks our whole hand is currently expected to win
+            hand_value = expected_tricks(hand, unseen, trump, len(view.players) - 1)
+            # If we have excess winning power AND can safely lose this trick,
+            # dump our strongest guaranteed loser now while it's safe.
+            sure_losers = [c for c in legal_cards if hold(c) <= 0.0]
+            if sure_losers and (hand_value - needed) >= 0.5:
+                return max(sure_losers, key=power)
+            
+            return self._play_to_win(
+                legal_cards, hold, power, must=needed >= len(hand)
+            )
         return self._play_to_lose(legal_cards, hold, power)
 
     @staticmethod
