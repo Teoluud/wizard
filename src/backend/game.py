@@ -54,7 +54,15 @@ class Game:
         self.players = players
         self.deck = deck
         self.agents = agents
-        self.observers = observers
+        # An agent that is also an observer (the CLI, a bot that counts cards)
+        # gets the events too, without being listed twice
+        self.observers: list[GameObserver] = list(observers)
+        for agent in agents.values():
+            if isinstance(agent, GameObserver) and not any(
+                agent is observer for observer in self.observers
+            ):
+                self.observers.append(agent)
+
         self.n_rounds = len(deck) // len(players)
 
     async def play(self) -> None:

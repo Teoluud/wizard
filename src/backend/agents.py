@@ -1,4 +1,4 @@
-from typing import Protocol
+from typing import Protocol, runtime_checkable
 
 from src.backend.cards import Card, Color
 from src.backend.events import GameEvent
@@ -32,7 +32,12 @@ class PlayerAgent(Protocol):
         ...
 
 
+@runtime_checkable
 class GameObserver(Protocol):
-    """Whoever wants to follow the game: a screen, a log, a spectator, ..."""
+    """Whoever wants to follow the game: a screen, a log, a spectator, ...
+    
+    An agent that also has `on_event` is registered by the Game automatically,
+    so a bot can keep track of the cards that were played.
+    """
 
     async def on_event(self, event: GameEvent) -> None: ...
