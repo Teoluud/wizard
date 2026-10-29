@@ -13,7 +13,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 
 from src.ai.game_log import GameLog
-from src.ai.heuristic_agent import HeuristicAgent
+from src.ai.heuristic_agent import HeuristicAgent, TestHeuristicAgent
 from src.ai.random_agent import RandomAgent
 from src.backend.agents import PlayerAgent
 from src.backend.cards import Deck
@@ -26,6 +26,7 @@ AgentFactory = Callable[[int], PlayerAgent]
 KINDS: dict[str, AgentFactory] = {
     "random": lambda seed: RandomAgent(seed),
     "heuristic": lambda seed: HeuristicAgent(),
+    "test": lambda seed: TestHeuristicAgent(),
 }
 
 

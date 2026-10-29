@@ -71,7 +71,9 @@ class HeuristicAgent:
     async def ask_call(self, view: PlayerView, forbidden_call: int | None) -> int:
         expected = self._expected_tricks(view)
         allowed = [c for c in range(view.round_number + 1) if c != forbidden_call]
-        return min(allowed, key=lambda call: (abs(call - expected), call))
+        return min(
+            allowed, key=lambda call: (abs(call - expected), call)
+        )  # returns the call that minimizes the distance to expected, with `call` as the tiebreaker
 
     async def ask_card_to_pass(
         self, view: PlayerView, rule: PassRule, recipient: str
@@ -115,10 +117,7 @@ class HeuristicAgent:
             sure_losers = [c for c in legal_cards if hold(c) <= 0.0]
             if sure_losers and (hand_value - needed) >= 0.5:
                 return max(sure_losers, key=power)
-            
-            return self._play_to_win(
-                legal_cards, hold, power, must=needed >= len(hand)
-            )
+            return self._play_to_win(legal_cards, hold, power, must=needed >= len(hand))
         return self._play_to_lose(legal_cards, hold, power)
 
     @staticmethod
@@ -170,3 +169,55 @@ class HeuristicAgent:
         if view.trump.card is not None:
             known[view.trump.card] += 1
         return unseen_cards(known.elements())
+
+
+class TestHeuristicAgent(HeuristicAgent):
+
+    async def ask_card(self, view: PlayerView, legal_cards: list[Card]) -> Card:
+        if len(legal_cards) == 1:
+            return legal_cards[0]
+        trump = view.trump.color
+        unseen = self.unseen_for(view)
+        opponents_left = len(view.players) - 1 - len(view.table)
+        leader = _winning_card(view.table, trump)
+
+        def hold(card: Card) -> float:
+            """The chance that playing `card` takes the trick."""
+            if leader is not None and not beats(card, leader, trump):
+                return 0.0
+            return hold_chance(card, unseen, trump, opponents_left)
+
+        def power(card: Card) -> int:
+            return card_power(card, trump)
+
+        status = view.status
+        needed = (status.call or 0) - status.tricks_won
+        if needed > 0:
+            hand = view.own_hand or legal_cards
+            return self._play_to_win_test(legal_cards, hold, power, hand, needed)
+        return self._play_to_lose(legal_cards, hold, power)
+
+    @staticmethod
+    def _play_to_win_test(
+        legal_cards: list[Card],
+        hold: Callable[[Card], float],
+        power: Callable[[Card], int],
+        hand: list[Card],
+        needed: int,
+    ) -> Card:
+        must = needed >= len(hand)
+        decent = [card for card in legal_cards if hold(card) >= WIN_THRESHOLD]
+        if decent:
+            return min(decent, key=power)
+        best = max(legal_cards, key=hold)
+        if not (hold(best) <= 0.0 or (not must and hold(best) < GIVE_UP_THRESHOLD)):
+            return best
+
+        # We are giving up on this trick!
+        # Protect our `needed` strongest cards in hand for future tricks;
+        # among the rest, dump the strongest card that is guaranteed to lose.
+        keepers = sorted(hand, key=power)[-needed:]
+        safe_dumps = [c for c in legal_cards if c not in keepers and hold(c) <= 0.0]
+        if safe_dumps:
+            return max(safe_dumps, key=power)
+        return min(legal_cards, key=power)
