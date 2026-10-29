@@ -23,14 +23,14 @@ class GameServer:
     def __init__(
         self,
         host: str,
-        port: str,
+        port: int,
         seats: int,
         expected_humans: int,
         bot_kind: str = "heuristic",
         seed: int | None = None,
     ) -> None:
         if not 2 <= seats <= 6:
-            raise ValueError("Wizard requires between 3 and 6 seats.")
+            raise ValueError("Wizard requires between 2 and 6 seats.")
         if not 0 <= expected_humans <= seats:
             raise ValueError("expected_humans must be between 0 and seats.")
         if bot_kind not in KINDS:
@@ -72,24 +72,20 @@ class GameServer:
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
     ) -> None:
         stream = JsonStream(reader, writer)
-        if len(self._remote_agents) >= self.expected_humans:
-            await stream.send({"kind": "error", "message": "Lobby is already full."})
-            await stream.close()
-            return
         try:
             hello = await stream.receive()
-        except ConnectionResetError:
+        except (ConnectionResetError, ValueError):
             await stream.close()
             return
 
         name = str(hello.get("name", "")).strip()
-        if hello.get("kind") != "join" or not name:
-            await stream.send(
-                {"kind": "error", "message": "Expected join packet with name."}
-            )
+        problem = self._join_problem(hello.get("kind"), name)
+        if problem is not None:
+            await stream.send({"kind": "error", "message": problem})
             await stream.close()
             return
-
+        
+        # No awaits between the checks above and this line, so two clients can't race.
         self._remote_agents[name] = RemotePlayerAgent(name, stream)
         await stream.send(
             {
@@ -106,6 +102,15 @@ class GameServer:
         )
         if len(self._remote_agents) == self.expected_humans:
             self._lobby_ready.set()
+
+    def _join_problem(self, kind: object, name: str) -> str | None:
+        if kind != "join" or not name:
+            return "Expected a join packet with a name."
+        if len(self._remote_agents) >= self.expected_humans:
+            return "Lobby is already full."
+        if name in self._remote_agents:
+            return f"The name '{name}' is already taken."
+        return None
 
     def _build_table(self) -> tuple[list[Player], dict[str, PlayerAgent]]:
         """Builds a table of players and their respective agents."""
