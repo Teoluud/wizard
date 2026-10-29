@@ -168,6 +168,8 @@ class Round:
         rule = self.pending_pass
         if rule is None:
             raise ValueError("There are no cards to pass right now.")
+        if len(chosen) != rule.count:
+            raise ValueError(f"{player.name} must pass exactly {rule.count} cards.")
         hand = list(player.cards)
         for card in chosen:
             if card not in hand:
