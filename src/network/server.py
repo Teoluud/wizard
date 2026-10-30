@@ -48,6 +48,7 @@ class GameServer:
         self.expected_humans = expected_humans
         self.bot_kind = bot_kind
         self.seed = seed
+        self._rng = random.Random(seed)
         self.turn_timeout = turn_timeout
 
         self._remote_agents: dict[str, RemotePlayerAgent] = {}
@@ -91,7 +92,7 @@ class GameServer:
 
         # No awaits between the checks above and this line, so two clients can't race.
         # A bot waits behind every human, ready to take the seat if they drop.
-        standby = KINDS[self.bot_kind](self._bot_seed(len(self._remote_agents)))
+        standby = KINDS[self.bot_kind](self._bot_seed())
         self._remote_agents[name] = RemotePlayerAgent(
             name, stream, standby, self.turn_timeout
         )
@@ -112,9 +113,9 @@ class GameServer:
             f"({len(self._remote_agents)}/{self.expected_humans})."
         )
 
-    def _bot_seed(self, index: int) -> int:
-        """A seed for the `index`-th bot of this server (humans' standbys too)."""
-        return (self.seed or 0) * 100 + index
+    def _bot_seed(self) -> int:
+        """A fresh seed for a bot: reproducible only if the server has a seed."""
+        return self._rng.randrange(2**32)
 
     def _join_problem(self, kind: object, name: str) -> str | None:
         if kind != "join" or not name:
@@ -138,16 +139,15 @@ class GameServer:
             agents[name] = remote
 
         bots_needed = self.seats - len(players)
-        base_seed = self.seed or 0
         for i in range(1, bots_needed + 1):
             bot_name = f"{self.bot_kind}-{i}"
             while bot_name in agents:
                 i += 1
                 bot_name = f"{self.bot_kind}-{i}"
             players.append(Player(bot_name))
-            agents[bot_name] = KINDS[self.bot_kind](base_seed * 100 + i)
+            agents[bot_name] = KINDS[self.bot_kind](self._bot_seed())
         # Avoid humans always getting the first seats
-        random.shuffle(players)
+        self._rng.shuffle(players)
         return players, agents
 
 
