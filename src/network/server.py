@@ -29,6 +29,7 @@ class GameServer:
         expected_humans: int,
         bot_kind: str = "heuristic",
         seed: int | None = None,
+        turn_timeout: float | None = None,
     ) -> None:
         if not 2 <= seats <= 6:
             raise ValueError("Wizard requires between 2 and 6 seats.")
@@ -43,6 +44,7 @@ class GameServer:
         self.expected_humans = expected_humans
         self.bot_kind = bot_kind
         self.seed = seed
+        self.turn_timeout = turn_timeout
 
         self._remote_agents: dict[str, RemotePlayerAgent] = {}
         self._lobby_ready = asyncio.Event()
@@ -84,7 +86,11 @@ class GameServer:
             return
 
         # No awaits between the checks above and this line, so two clients can't race.
-        self._remote_agents[name] = RemotePlayerAgent(name, stream)
+        # A bot waits behind every human, ready to take the seat if they drop.
+        standby = KINDS[self.bot_kind](self._bot_seed(len(self._remote_agents)))
+        self._remote_agents[name] = RemotePlayerAgent(
+            name, stream, standby, self.turn_timeout
+        )
         await stream.send(
             {
                 "kind": "welcome",
@@ -100,6 +106,10 @@ class GameServer:
         )
         if len(self._remote_agents) == self.expected_humans:
             self._lobby_ready.set()
+
+    def _bot_seed(self, index: int) -> int:
+        """A seed for the `index`-th bot of this server (humans' standbys too)."""
+        return (self.seed or 0) * 100 + index
 
     def _join_problem(self, kind: object, name: str) -> str | None:
         if kind != "join" or not name:
@@ -153,6 +163,13 @@ def main() -> None:
         help="bot kind used to fill empty seats",
     )
     parser.add_argument("--seed", type=int, default=None)
+    parser.add_argument(
+        "--turn-timeout",
+        type=float,
+        default=None,
+        metavar="SECONDS",
+        help="a human who doesn't answer in time is replaced by a bot",
+    )
     args = parser.parse_args()
 
     server = GameServer(
@@ -162,6 +179,7 @@ def main() -> None:
         expected_humans=args.humans,
         bot_kind=args.bot,
         seed=args.seed,
+        turn_timeout=args.turn_timeout,
     )
     asyncio.run(server.run())
 

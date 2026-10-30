@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import json
 from typing import Any, Mapping
 
@@ -230,5 +231,7 @@ class JsonStream:
         return json.loads(line.decode("utf-8"))
 
     async def close(self) -> None:
+        """Closes the connection; a peer that is already gone is not an error."""
         self._writer.close()
-        await self._writer.wait_closed()
+        with contextlib.suppress(OSError):
+            await self._writer.wait_closed()

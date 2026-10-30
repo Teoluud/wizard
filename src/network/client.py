@@ -87,7 +87,7 @@ def main() -> None:
         host=args.host,
         port=args.port,
         name=args.name,
-        agent=NetworkCliAgent(),
+        agent=NetworkCliAgent(args.name),
     )
     asyncio.run(client.run())
 

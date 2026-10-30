@@ -18,7 +18,9 @@ class RandomAgent:
         allowed = [c for c in range(view.round_number + 1) if c != forbidden_call]
         return self._rng.choice(allowed)
 
-    async def ask_card_to_pass(self, view: PlayerView, rule: PassRule, recipient: str) -> list[Card]:
+    async def ask_card_to_pass(
+        self, view: PlayerView, rule: PassRule, recipient: str
+    ) -> list[Card]:
         hand = view.own_hand
         if hand is None:
             raise ValueError("Can't choose cards to pass without seeing them.")

@@ -84,15 +84,16 @@ class HeuristicAgent:
             raise ValueError("Can't choose cards to pass without seeing them.")
         trump = view.trump.color
         unseen = self.unseen_for(view)
-        opponets = len(view.players) - 1
+        opponents = len(view.players) - 1
         call = view.status.call or 0
         # Every card we receive is worth about one fair share of a trick.
         incoming = rule.count / len(view.players)
 
         def key(kept: tuple[Card, ...]) -> tuple[float, int]:
-            projected = expected_tricks(kept, unseen, trump, opponets) + incoming
+            projected = expected_tricks(kept, unseen, trump, opponents) + incoming
             # On a tie, keep the stronger cards.
-            return (round(abs(projected - call), 6), - sum(card_power(c, trump) for c in kept))
+            strength = sum(card_power(c, trump) for c in kept)
+            return (round(abs(projected - call), 6), -strength)
 
         kept = min(combinations(hand, len(hand) - rule.count), key=key)
         to_give = list(hand)
@@ -107,16 +108,16 @@ class HeuristicAgent:
         unseen = self.unseen_for(view)
         opponents_left = len(view.players) - 1 - len(view.table)
         leader = _winning_card(view.table, trump)
-        
+
         def hold(card: Card) -> float:
             """The chance that playing `card` takes the trick."""
             if leader is not None and not beats(card, leader, trump):
                 return 0.0
             return hold_chance(card, unseen, trump, opponents_left)
-        
+
         def power(card: Card) -> int:
             return card_power(card, trump)
-        
+
         status = view.status
         needed = (status.call or 0) - status.tricks_won
         if needed > 0:
@@ -139,7 +140,7 @@ class HeuristicAgent:
         best = max(legal_cards, key=hold)
         if not (hold(best) <= 0.0 or (not must and hold(best) < GIVE_UP_THRESHOLD)):
             return best
-    
+
         # We are giving up on this trick!
         # Protect our `needed` strongest cards in hand for future tricks;
         # among the rest, dump the strongest card that is guaranteed to lose.
