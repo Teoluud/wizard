@@ -186,3 +186,30 @@ def test_a_silent_player_is_replaced_after_the_timeout() -> None:
         assert not server._remote_agents["Sleeper"].connected  # type: ignore[reportPrivateUsage]
 
     asyncio.run(scenario())
+
+
+def test_a_packet_that_is_not_an_object_drops_the_player() -> None:
+    async def not_an_object(stream: JsonStream) -> None:
+        stream._writer.write(b"[1, 2, 3]\n")  # type: ignore[reportPrivateUsage]
+        await stream._writer.drain()  # type: ignore[reportPrivateUsage]
+
+    async def scenario() -> None:
+        port = free_port()
+        server = make_server(port, humans=1)
+
+        async def clients() -> None:
+            await start(server)
+            await raw_client(port, "Odd", not_an_object)
+
+        results = await play(server, port, [clients()])
+        assert results[0] is None
+        assert not server._remote_agents["Odd"].connected  # type: ignore[reportPrivateUsage]
+
+    asyncio.run(scenario())
+
+
+def test_a_name_with_escape_sequences_is_rejected() -> None:
+    server = make_server(free_port(), humans=1)
+    problem = server._join_problem("join", "\x1b[2Jevil")  # type: ignore[reportPrivateUsage]
+    assert problem is not None
+    assert server._join_problem("join", "Matteo") is None  # type: ignore[reportPrivateUsage]

@@ -1,7 +1,7 @@
 import asyncio
 import contextlib
 import json
-from typing import Any, Mapping
+from typing import Any, Mapping, cast
 
 from src.backend.cards import Card, Color
 from src.backend.events import (
@@ -228,7 +228,10 @@ class JsonStream:
         line = await self._reader.readline()
         if not line:
             raise ConnectionResetError("Peer closed the connection.")
-        return json.loads(line.decode("utf-8"))
+        packet = json.loads(line.decode("utf-8"))
+        if not isinstance(packet, dict):
+            raise ValueError(f"Expected a JSON object, got: {packet!r}")
+        return cast(dict[str, Any], packet)
 
     async def close(self) -> None:
         """Closes the connection; a peer that is already gone is not an error."""

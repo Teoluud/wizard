@@ -17,6 +17,10 @@ from src.backend.player import Player
 from src.network.protocol import JsonStream
 from src.network.remote_agent import RemotePlayerAgent
 
+# How long a new connection has to say who it is before it is dropped.
+JOIN_TIMEOUT = 10.0
+MAX_NAME_LENGTH = 20
+
 
 class GameServer:
     """Accepts client connections, fills empty seats with bots, and runs Game."""
@@ -73,7 +77,7 @@ class GameServer:
     ) -> None:
         stream = JsonStream(reader, writer)
         try:
-            hello = await stream.receive()
+            hello = await asyncio.wait_for(stream.receive(), JOIN_TIMEOUT)
         except (ConnectionResetError, ValueError):
             await stream.close()
             return
@@ -91,6 +95,9 @@ class GameServer:
         self._remote_agents[name] = RemotePlayerAgent(
             name, stream, standby, self.turn_timeout
         )
+        # A failing send must not block the lobby.
+        if len(self._remote_agents) == self.expected_humans:
+            self._lobby_ready.set()
         await stream.send(
             {
                 "kind": "welcome",
@@ -104,8 +111,6 @@ class GameServer:
             f"Player '{name}' connected "
             f"({len(self._remote_agents)}/{self.expected_humans})."
         )
-        if len(self._remote_agents) == self.expected_humans:
-            self._lobby_ready.set()
 
     def _bot_seed(self, index: int) -> int:
         """A seed for the `index`-th bot of this server (humans' standbys too)."""
@@ -114,6 +119,9 @@ class GameServer:
     def _join_problem(self, kind: object, name: str) -> str | None:
         if kind != "join" or not name:
             return "Expected a join packet with a name."
+        if len(name) > MAX_NAME_LENGTH or not name.isprintable():
+            # Names are shown on everybody's terminal: no escape sequences.
+            return f"Names must be printable and up to {MAX_NAME_LENGTH} characters."
         if len(self._remote_agents) >= self.expected_humans:
             return "Lobby is already full."
         if name in self._remote_agents:

@@ -112,8 +112,11 @@ class RemotePlayerAgent:
         if not self._connected:
             return
         try:
-            await self._stream.send(
-                {"kind": "event", "data": JsonCodec.encode_event(event)}
+            await asyncio.wait_for(
+                self._stream.send(
+                    {"kind": "event", "data": JsonCodec.encode_event(event)}
+                ),
+                self._turn_timeout,
             )
         except OSError as error:
             await self._drop(f"could not send an event ({error!r})")
@@ -121,6 +124,7 @@ class RemotePlayerAgent:
     # --- connection ---------------------------------------------------------
 
     async def close(self) -> None:
+        self._connected = False
         await self._stream.close()
 
     async def _ask(
