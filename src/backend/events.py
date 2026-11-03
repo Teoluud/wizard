@@ -63,7 +63,6 @@ class GameOver:
     scores: list[PlayerStatus]
 
 
-
 GameEvent = (
     GameStarted
     | RoundStarted

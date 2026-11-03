@@ -141,7 +141,7 @@ class CliInterface:
         if hand is None:
             raise ValueError(f"{view.player_name} can't see their own hand.")
         return hand
-    
+
     def _print_hands(self, view: PlayerView) -> None:
         """Prints the hands the player may see (their own, or the others')."""
         for owner, cards in view.hands:
