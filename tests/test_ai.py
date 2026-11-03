@@ -49,7 +49,11 @@ def make_view(
         trump=Trump(trump, trump.color if trump else None),
         players=[
             PlayerStatus(
-                name, call if name == me else None, tricks_won if name == me else 0, 0, 3
+                name,
+                call if name == me else None,
+                tricks_won if name == me else 0,
+                0,
+                3,
             )
             for name in order
         ],
@@ -159,19 +163,19 @@ def test_wanting_a_trick_and_playing_last_it_wins_with_the_cheapest_winner() -> 
 
 def test_not_wanting_a_trick_it_dumps_its_strongest_sure_loser() -> None:
     hand = [card(RED, 12), card(RED, 3)]
-    table = [("B", Wizard()), ("C", card(RED, 5))]
+    table: list[tuple[str, Card]] = [("B", Wizard()), ("C", card(RED, 5))]
     view = make_view(hand, table, call=0, tricks_won=0)
     assert asyncio.run(HeuristicAgent().ask_card(view, hand)) == card(RED, 12)
 
 
 def test_not_wanting_a_trick_it_keeps_the_wizard_when_it_could_win() -> None:
-    hand = [Wizard(), card(RED, 3)]
+    hand: list[Card] = [Wizard(), card(RED, 3)]
     view = make_view(hand, [], call=0, tricks_won=0, order=("A", "B", "C"))
     assert asyncio.run(HeuristicAgent().ask_card(view, hand)) == card(RED, 3)
 
 
 def test_it_passes_the_best_cards_when_the_hand_is_too_strong_for_its_call() -> None:
-    hand = [Wizard(), Wizard(), card(RED, 3), Jester(), card(BLUE, 4)]
+    hand: list[Card] = [Wizard(), Wizard(), card(RED, 3), Jester(), card(BLUE, 4)]
     rule = PassRule(2, Direction.RIGHT)
     strong = make_view(hand, call=0, trump=card(GREEN, 5))
     passed = asyncio.run(HeuristicAgent().ask_card_to_pass(strong, rule, "C"))
@@ -179,7 +183,7 @@ def test_it_passes_the_best_cards_when_the_hand_is_too_strong_for_its_call() -> 
 
 
 def test_it_passes_the_worst_cards_when_it_needs_more_strength() -> None:
-    hand = [Wizard(), card(RED, 13), card(RED, 3), Jester(), card(BLUE, 4)]
+    hand: list[Card] = [Wizard(), card(RED, 13), card(RED, 3), Jester(), card(BLUE, 4)]
     rule = PassRule(2, Direction.LEFT)
     weak = make_view(hand, call=5, trump=card(GREEN, 5))
     passed = asyncio.run(HeuristicAgent().ask_card_to_pass(weak, rule, "C"))
@@ -189,7 +193,7 @@ def test_it_passes_the_worst_cards_when_it_needs_more_strength() -> None:
 def test_it_does_not_pass_away_the_cards_that_make_its_call() -> None:
     # A real game: it called 3 with this hand and used to pass the Wizard and
     # the 13 of trump (the two cards that made the call) to its neighbour.
-    hand = [
+    hand: list[Card] = [
         Wizard(),
         card(BLUE, 13),
         card(BLUE, 12),
@@ -257,9 +261,7 @@ class RuleChecker:
 def test_the_bots_never_give_an_answer_the_rules_reject() -> None:
     for seed in range(5):
         checked = {
-            name: RuleChecker(
-                HeuristicAgent() if i < 2 else RandomAgent(seed * 10 + i)
-            )
+            name: RuleChecker(HeuristicAgent() if i < 2 else RandomAgent(seed * 10 + i))
             for i, name in enumerate(NAMES)
         }
         run_game(seed, agents=checked)
@@ -289,7 +291,8 @@ def test_the_bot_counts_the_cards_played_through_the_events() -> None:
 
 
 def test_the_heuristic_bot_clearly_beats_random_play() -> None:
-    standings = {s.kind: s for s in run_tournament(["heuristic", "random", "random"], 30)}
+    results = run_tournament(["heuristic", "random", "random"], 30)
+    standings = {s.kind: s for s in results}
     assert standings["heuristic"].mean > standings["random"].mean + 40
     assert standings["heuristic"].wins >= 27
 

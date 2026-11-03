@@ -9,7 +9,7 @@ _CLEAR_SCREEN = "\033[H\033[2J\033[3J"
 
 class CliInterface:
     """Terminal front end: plays every seat (hot-seat) and shows what happens.
-    
+
     It is both a PlayerAgent (answers the questions) and a GameObserver (shows
     the events). The methods are async to fit the protocols, but `input()`
     blocks, which is fine because a hot-seat game has nothing else to do.

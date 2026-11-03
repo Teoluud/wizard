@@ -74,7 +74,7 @@ class HeuristicAgent:
         allowed = [c for c in range(view.round_number + 1) if c != forbidden_call]
         return min(
             allowed, key=lambda call: (abs(call - expected), call)
-        )  # returns the call that minimizes the distance to expected, with `call` as the tiebreaker
+        )  # closes to the expected tricks; the lower call wins a tie
 
     async def ask_card_to_pass(
         self, view: PlayerView, rule: PassRule, recipient: str

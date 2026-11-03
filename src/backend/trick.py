@@ -50,6 +50,6 @@ class Trick:
         if not candidates:  # all Jesters: first one wins
             return self.plays[0][0]
         trumps = [(p, c) for p, c in candidates if c.color == self.trump_color]
-        # build the pool: only trump cards if present, otherwise only cards with the led color
+        # build the pool: only trump cards if present, otherwise cards of the led color
         pool = trumps or [(p, c) for p, c in candidates if c.color == self.led_color]
         return max(pool, key=lambda play: play[1].number)[0]

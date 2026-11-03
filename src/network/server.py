@@ -84,7 +84,7 @@ class GameServer:
             return
 
         name = str(hello.get("name", "")).strip()
-        problem = self._join_problem(hello.get("kind"), name)
+        problem = self.join_problem(hello.get("kind"), name)
         if problem is not None:
             await stream.send({"kind": "error", "message": problem})
             await stream.close()
@@ -113,11 +113,16 @@ class GameServer:
             f"({len(self._remote_agents)}/{self.expected_humans})."
         )
 
+    @property
+    def humans(self) -> dict[str, RemotePlayerAgent]:
+        """The remote players that joined, by name."""
+        return self._remote_agents
+
     def _bot_seed(self) -> int:
         """A fresh seed for a bot: reproducible only if the server has a seed."""
         return self._rng.randrange(2**32)
 
-    def _join_problem(self, kind: object, name: str) -> str | None:
+    def join_problem(self, kind: object, name: str) -> str | None:
         if kind != "join" or not name:
             return "Expected a join packet with a name."
         if len(name) > MAX_NAME_LENGTH or not name.isprintable():

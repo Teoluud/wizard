@@ -46,9 +46,8 @@ class GameLog:
             case GameStarted(players=players, n_rounds=n_rounds):
                 print(f"Game of {n_rounds} rounds: {', '.join(players)}")
             case RoundStarted(round_number=number, dealer=dealer, trump=trump):
-                print(
-                    f"\n=== Round {number}, dealer {dealer}, trump {describe_trump(trump)}"
-                )
+                trump_text = describe_trump(trump)
+                print(f"\n=== Round {number}, dealer {dealer}, trump {trump_text}")
             case TrumpChosen(dealer=dealer, color=color):
                 print(f"  {dealer} chooses {color} as trump")
             case CallMade(player=player, call=call):

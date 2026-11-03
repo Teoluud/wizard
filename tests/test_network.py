@@ -107,7 +107,7 @@ def test_a_full_game_with_two_humans_and_a_bot() -> None:
 
         results = await play(server, port, [clients()])
         assert results == [None, None]
-        assert all(r.connected is False for r in server._remote_agents.values())  # type: ignore[reportPrivateUsage]
+        assert all(r.connected is False for r in server.humans.values())
 
     asyncio.run(scenario())
 
@@ -146,7 +146,7 @@ def test_a_dropped_player_is_replaced_by_a_bot() -> None:
 
         results = await play(server, port, [clients()])
         assert results[0] is None  # the server finished the game anyway
-        assert not server._remote_agents["Quitter"].connected  # type: ignore[reportPrivateUsage]
+        assert not server.humans["Quitter"].connected
 
     asyncio.run(scenario())
 
@@ -167,7 +167,7 @@ def test_garbage_answers_drop_the_player() -> None:
 
         results = await play(server, port, [clients()])
         assert results[0] is None
-        assert not server._remote_agents["Cheater"].connected  # type: ignore[reportPrivateUsage]
+        assert not server.humans["Cheater"].connected
 
     asyncio.run(scenario())
 
@@ -183,15 +183,14 @@ def test_a_silent_player_is_replaced_after_the_timeout() -> None:
 
         results = await play(server, port, [clients()])
         assert results[0] is None
-        assert not server._remote_agents["Sleeper"].connected  # type: ignore[reportPrivateUsage]
+        assert not server.humans["Sleeper"].connected
 
     asyncio.run(scenario())
 
 
 def test_a_packet_that_is_not_an_object_drops_the_player() -> None:
     async def not_an_object(stream: JsonStream) -> None:
-        stream._writer.write(b"[1, 2, 3]\n")  # type: ignore[reportPrivateUsage]
-        await stream._writer.drain()  # type: ignore[reportPrivateUsage]
+        await stream.send({"bad": [1, 2, 3]})
 
     async def scenario() -> None:
         port = free_port()
@@ -203,13 +202,13 @@ def test_a_packet_that_is_not_an_object_drops_the_player() -> None:
 
         results = await play(server, port, [clients()])
         assert results[0] is None
-        assert not server._remote_agents["Odd"].connected  # type: ignore[reportPrivateUsage]
+        assert not server.humans["Odd"].connected
 
     asyncio.run(scenario())
 
 
 def test_a_name_with_escape_sequences_is_rejected() -> None:
     server = make_server(free_port(), humans=1)
-    problem = server._join_problem("join", "\x1b[2Jevil")  # type: ignore[reportPrivateUsage]
+    problem = server.join_problem("join", "\x1b[2Jevil")
     assert problem is not None
-    assert server._join_problem("join", "Matteo") is None  # type: ignore[reportPrivateUsage]
+    assert server.join_problem("join", "Matteo") is None
