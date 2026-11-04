@@ -7,6 +7,7 @@ Example (3-player game with 1 human and 2 heuristic bots):
 import argparse
 import asyncio
 import random
+from pathlib import Path
 
 from src.ai.tournament import KINDS
 from src.frontend.game_log import GameLog
@@ -14,6 +15,7 @@ from src.backend.agents import PlayerAgent
 from src.backend.cards import Deck
 from src.backend.game import Game
 from src.backend.player import Player
+from src.network.gateway import Gateway
 from src.network.protocol import JsonStream
 from src.network.remote_agent import RemotePlayerAgent
 
@@ -34,6 +36,7 @@ class GameServer:
         bot_kind: str = "heuristic",
         seed: int | None = None,
         turn_timeout: float | None = None,
+        web_root: Path | None = None,
     ) -> None:
         if not 2 <= seats <= 6:
             raise ValueError("Wizard requires between 2 and 6 seats.")
@@ -50,6 +53,7 @@ class GameServer:
         self.seed = seed
         self._rng = random.Random(seed)
         self.turn_timeout = turn_timeout
+        self._gateway = Gateway(web_root)
 
         self._remote_agents: dict[str, RemotePlayerAgent] = {}
         self._lobby_ready = asyncio.Event()
@@ -76,10 +80,18 @@ class GameServer:
     async def _handle_client(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
     ) -> None:
-        stream = JsonStream(reader, writer)
+        try:
+            stream = await asyncio.wait_for(
+                self._gateway.accept(reader, writer), JOIN_TIMEOUT
+            )
+        except TimeoutError:
+            writer.close()
+            return
+        if stream is None:  # a web page requested: already answered
+            return
         try:
             hello = await asyncio.wait_for(stream.receive(), JOIN_TIMEOUT)
-        except (ConnectionResetError, ValueError):
+        except (OSError, ValueError):
             await stream.close()
             return
 
@@ -183,6 +195,12 @@ def main() -> None:
         metavar="SECONDS",
         help="a human who doesn't answer in time is replaced by a bot",
     )
+    parser.add_argument(
+        "--web-root",
+        type=Path,
+        default=Path(__file__).resolve().parents[2] / "web",
+        help="folder of the web client (served at /); default: ./web",
+    )
     args = parser.parse_args()
 
     server = GameServer(
@@ -193,6 +211,7 @@ def main() -> None:
         bot_kind=args.bot,
         seed=args.seed,
         turn_timeout=args.turn_timeout,
+        web_root=args.web_root
     )
     asyncio.run(server.run())
 
