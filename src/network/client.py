@@ -12,7 +12,7 @@ from src.backend.agents import PlayerAgent, GameObserver
 from src.backend.cards import Card
 from src.backend.events import GameOver
 from src.frontend.network_cli import NetworkCliAgent
-from src.network.protocol import JsonCodec, JsonStream
+from src.network.protocol import JsonCodec, JsonStream, MessageStream
 
 
 class GameClient:
@@ -26,14 +26,17 @@ class GameClient:
 
     async def run(self) -> None:
         reader, writer = await asyncio.open_connection(self.host, self.port)
-        stream = JsonStream(reader, writer)
+        await self.play(JsonStream(reader, writer))
+
+    async def play(self, stream: MessageStream) -> None:
+        """Joins through `stream` and plays until the game is over."""
         try:
             await stream.send({"kind": "join", "name": self.name})
             reply = await stream.receive()
             if reply.get("kind") == "error":
                 raise RuntimeError(f"Server rejected join: {reply.get('message')}")
             print(reply.get("message", "Connected to server."))
-
+        
             while True:
                 packet = await stream.receive()
                 kind = packet.get("kind")

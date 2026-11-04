@@ -7,7 +7,7 @@ from src.backend.cards import Card, Color
 from src.backend.events import GameEvent
 from src.backend.rules import PassRule
 from src.backend.view import PlayerView
-from src.network.protocol import JsonCodec, JsonStream
+from src.network.protocol import JsonCodec, MessageStream
 
 T = TypeVar("T")
 
@@ -29,7 +29,7 @@ class RemotePlayerAgent:
     def __init__(
         self,
         name: str,
-        stream: JsonStream,
+        stream: MessageStream,
         fallback: PlayerAgent,
         turn_timeout: float | None,
     ) -> None:

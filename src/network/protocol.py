@@ -1,7 +1,7 @@
 import asyncio
 import contextlib
 import json
-from typing import Any, Mapping, cast
+from typing import Any, Mapping, Protocol, cast
 
 from src.backend.cards import Card, Color
 from src.backend.events import (
@@ -210,14 +210,39 @@ class JsonCodec:
                 raise ValueError(f"Unknown event type: {kind}")
 
 
+class MessageStream(Protocol):
+    """A connection that carries JSON objects, whatever the transport underneath."""
+
+    async def send(self, payload: Mapping[str, Any]) -> None: ...
+
+    async def receive(self) -> dict[str, Any]:
+        """The next packet. Raises `ConnectionError` if the peer is gone and
+        `ValueError` if what arrived is not a JSON object."""
+        ...
+
+    async def close(self) -> None: ...
+
+
+def parse_packet(text: str | bytes) -> dict[str, Any]:
+    """Turns the text of one message into a packet (a JSON object)."""
+    packet = json.loads(text)
+    if not isinstance(packet, dict):
+        raise ValueError(f"Expected a JSON object, got: {packet!r}")
+    return cast(dict[str, Any], packet)
+
+
 class JsonStream:
     """Wraps an asyncio StreamReader/StreamWriter pair to send/receive JSON lines."""
 
     def __init__(
-        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
+        self,
+        reader: asyncio.StreamReader,
+        writer: asyncio.StreamWriter,
+        pending: list[bytes] | None = None,
     ) -> None:
         self._reader = reader
         self._writer = writer
+        self._pending = list(pending or [])
 
     async def send(self, payload: Mapping[str, Any]) -> None:
         line = json.dumps(payload) + "\n"
@@ -225,13 +250,10 @@ class JsonStream:
         await self._writer.drain()
 
     async def receive(self) -> dict[str, Any]:
-        line = await self._reader.readline()
+        line = self._pending.pop(0) if self._pending else await self._reader.readline()
         if not line:
             raise ConnectionResetError("Peer closed the connection.")
-        packet = json.loads(line.decode("utf-8"))
-        if not isinstance(packet, dict):
-            raise ValueError(f"Expected a JSON object, got: {packet!r}")
-        return cast(dict[str, Any], packet)
+        return parse_packet(line)
 
     async def close(self) -> None:
         """Closes the connection; a peer that is already gone is not an error."""
