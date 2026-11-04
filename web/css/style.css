@@ -1,0 +1,438 @@
+:root {
+    --bg: #12281d;
+    --felt: #1c4b34;
+    --panel: #f6f3ea;
+    --ink: #1d1d1b;
+    --muted: #9bb3a5;
+    --red: #d64545;
+    --yellow: #e8b923;
+    --blue: #3b7ddd;
+    --green: #2f9e63;
+    --wizard: #7c4dbd;
+    --jester: #6f747c;
+    --accent: #f0c24b;
+    --card-w: 64px;
+    --card-h: 92px;
+    color-scheme: dark;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: #eef3ef;
+    font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+#app {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 12px 16px 32px;
+}
+
+h1,
+h2 {
+    margin: 0 0 8px;
+}
+
+h2 {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+}
+
+/* --- generic pieces ------------------------------------------------------ */
+
+.panel {
+    background: var(--panel);
+    color: var(--ink);
+    border-radius: 14px;
+    padding: 24px;
+}
+
+.panel.join {
+    max-width: 420px;
+    margin: 12vh auto 0;
+    display: grid;
+    gap: 12px;
+}
+
+input {
+    font: inherit;
+    padding: 10px 12px;
+    border: 2px solid #c9c4b3;
+    border-radius: 8px;
+}
+
+button {
+    font: inherit;
+    cursor: pointer;
+    border: 0;
+    border-radius: 8px;
+    padding: 10px 16px;
+    background: #e4dfce;
+    color: var(--ink);
+}
+
+button.primary {
+    background: var(--accent);
+    font-weight: 600;
+}
+
+button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+button:focus-visible,
+.card:focus-visible,
+input:focus-visible {
+    outline: 3px solid #fff;
+    outline-offset: 2px;
+}
+
+.error {
+    color: #b3261e;
+    margin: 0;
+}
+
+.hint {
+    color: var(--muted);
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.panel .hint {
+    color: #6b6b62;
+}
+
+/* --- game layout --------------------------------------------------------- */
+
+header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 24px;
+    padding: 10px 14px;
+    background: #0c1b13;
+    border-radius: 10px;
+    margin-bottom: 12px;
+}
+
+header .trump {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.layout {
+    display: grid;
+    grid-template-columns: 1fr 260px;
+    gap: 12px;
+}
+
+@media (max-width: 800px) {
+    .layout {
+        grid-template-columns: 1fr;
+    }
+
+    .log ul {
+        max-height: 130px;
+    }
+}
+
+.scores {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 12px;
+}
+
+.scores th,
+.scores td {
+    padding: 6px 10px;
+    text-align: center;
+}
+
+.scores th:first-child {
+    text-align: left;
+}
+
+.scores thead th {
+    color: var(--muted);
+    font-weight: 500;
+    font-size: 0.85rem;
+}
+
+.scores tbody tr {
+    background: #163a29;
+}
+
+.scores tbody tr.me {
+    background: #21593f;
+    font-weight: 600;
+}
+
+.scores tbody th {
+    font-weight: inherit;
+}
+
+.felt {
+    min-height: calc(var(--card-h) + 70px);
+    background: radial-gradient(circle at 50% 40%, #256c4a, var(--felt));
+    border-radius: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 16px;
+}
+
+.play {
+    margin: 0;
+    text-align: center;
+}
+
+.play figcaption {
+    margin-top: 6px;
+    font-size: 0.9rem;
+}
+
+.play.winner .card {
+    box-shadow: 0 0 0 4px var(--accent), 0 6px 18px #0008;
+}
+
+.play.winner figcaption {
+    color: var(--accent);
+    font-weight: 700;
+}
+
+.log {
+    background: #0c1b13;
+    border-radius: 10px;
+    padding: 12px;
+}
+
+.log ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 280px;
+    overflow-y: auto;
+    font-size: 0.88rem;
+}
+
+.log li {
+    padding: 2px 0;
+    border-bottom: 1px solid #ffffff12;
+}
+
+.log li:last-child {
+    color: var(--accent);
+}
+
+.others {
+    margin-top: 12px;
+    display: grid;
+    gap: 8px;
+}
+
+.other {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.other>span {
+    min-width: 140px;
+    color: var(--muted);
+}
+
+.prompt {
+    margin-top: 14px;
+    padding: 14px;
+    border-radius: 10px;
+    background: #2a2312;
+    border: 2px solid var(--accent);
+}
+
+.prompt.idle {
+    background: transparent;
+    border: 2px dashed #ffffff22;
+    color: var(--muted);
+}
+
+.prompt p {
+    margin: 0 0 8px;
+}
+
+.choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.choice {
+    min-width: 52px;
+    text-transform: capitalize;
+    color: #fff;
+}
+
+.choice.number {
+    background: #e4dfce;
+    color: var(--ink);
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.choice.c-yellow {
+    color: var(--ink);
+}
+
+.hand {
+    margin-top: 14px;
+}
+
+.cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* --- cards --------------------------------------------------------------- */
+
+.card {
+    position: relative;
+    width: var(--card-w);
+    height: var(--card-h);
+    border-radius: 8px;
+    border: 3px solid #fff;
+    color: #fff;
+    display: grid;
+    place-items: center;
+    font-weight: 800;
+    user-select: none;
+    box-shadow: 0 3px 10px #0006;
+    transition: transform 0.12s ease;
+}
+
+.card .face {
+    font-size: 1.9rem;
+}
+
+.card .corner {
+    position: absolute;
+    top: 3px;
+    left: 6px;
+    font-size: 0.8rem;
+    opacity: 0.9;
+}
+
+.card.mini {
+    --card-w: 34px;
+    --card-h: 46px;
+    border-width: 2px;
+}
+
+.card.mini .face {
+    font-size: 1rem;
+}
+
+.card.mini .corner {
+    display: none;
+}
+
+.c-red {
+    background: var(--red);
+}
+
+.c-yellow {
+    background: var(--yellow);
+    color: var(--ink);
+}
+
+.c-blue {
+    background: var(--blue);
+}
+
+.c-green {
+    background: var(--green);
+}
+
+.c-wizard {
+    background: var(--wizard);
+}
+
+.c-jester {
+    background: var(--jester);
+}
+
+.card.playable {
+    cursor: pointer;
+}
+
+.card.playable:hover,
+.card.playable:focus-visible {
+    transform: translateY(-8px);
+}
+
+.card.selected {
+    transform: translateY(-14px);
+    box-shadow: 0 0 0 4px var(--accent), 0 6px 18px #0008;
+}
+
+.card.disabled {
+    opacity: 0.35;
+    filter: grayscale(0.4);
+}
+
+.swatch {
+    display: inline-block;
+    padding: 2px 12px;
+    border-radius: 999px;
+    font-weight: 700;
+    text-transform: capitalize;
+    color: #fff;
+}
+
+.swatch.c-yellow {
+    color: var(--ink);
+}
+
+/* --- end of the game ----------------------------------------------------- */
+
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: #000a;
+    display: grid;
+    place-items: center;
+    padding: 16px;
+}
+
+.overlay ol {
+    padding-left: 1.2em;
+    margin: 0 0 16px;
+}
+
+@media (max-width: 520px) {
+    :root {
+        --card-w: 54px;
+        --card-h: 78px;
+    }
+
+    .card .face {
+        font-size: 1.5rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .card {
+        transition: none;
+    }
+}

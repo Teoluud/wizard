@@ -16,7 +16,6 @@ from src.backend.cards import Deck
 from src.backend.game import Game
 from src.backend.player import Player
 from src.network.gateway import Gateway
-from src.network.protocol import JsonStream
 from src.network.remote_agent import RemotePlayerAgent
 
 # How long a new connection has to say who it is before it is dropped.
