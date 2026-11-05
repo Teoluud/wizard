@@ -10,7 +10,7 @@ const fast = new URLSearchParams(location.search).has("fast");
 let connection = null;
 let state = null;
 let prompt = null;
-let inGame = null;
+let inGame = false;
 
 function showJoin(error = null) {
     inGame = false;

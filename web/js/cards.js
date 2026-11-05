@@ -48,7 +48,7 @@ export function cardNode(card, mode = "", onClick = null) {
         node.addEventListener("keydown", (e) => {
             if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
-                onClick;
+                onClick();
             }
         });
     }

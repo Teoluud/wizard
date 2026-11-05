@@ -6,7 +6,7 @@ const MAX_LOG = 40;
 const DELAYS = {
     round_started: 800,
     trump_chosen: 600,
-    caòò_made: 400,
+    call_made: 400,
     cards_passed: 700,
     card_played: 650,
     trick_won: 1700,
@@ -98,6 +98,10 @@ export class GameState {
                 break;
             case "cards_passed":
                 this.say(`Everybody passed ${ev.count} cards to the ${ev.direction}`);
+                break;
+            case "card_played":
+                this.table.push({ player: ev.player, card:ev.card });
+                this.removeCard(ev.player, ev.card);
                 break;
             case "trick_won":
                 this.winner = ev.winner;
