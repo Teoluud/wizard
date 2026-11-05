@@ -3,6 +3,7 @@ import asyncio
 import pytest
 
 from src.ai.random_agent import RandomAgent
+from src.backend.agents import PlayerAgent
 from src.backend.cards import Deck, Jester, Wizard
 from src.backend.events import (
     CallMade,
@@ -169,7 +170,7 @@ class StubbornAgent(RandomAgent):
 
 def test_an_answer_the_rules_reject_is_asked_again() -> None:
     careless = CarelessAgent(0)
-    agents = {"A": careless, "B": RandomAgent(1), "C": RandomAgent(2)}
+    agents: dict[str, RandomAgent] = {"A": careless, "B": RandomAgent(1), "C": RandomAgent(2)}
     events = run_game(seed=10, agents=agents)
 
     assert careless.cheats > 0
@@ -179,7 +180,7 @@ def test_an_answer_the_rules_reject_is_asked_again() -> None:
 
 
 def test_an_agent_that_never_plays_by_the_rules_stops_the_game() -> None:
-    agents = {"A": StubbornAgent(0), "B": RandomAgent(1), "C": RandomAgent(2)}
+    agents: dict[str, RandomAgent] = {"A": StubbornAgent(0), "B": RandomAgent(1), "C": RandomAgent(2)}
     with pytest.raises(InvalidMoveError):
         run_game(seed=11, agents=agents)
 
@@ -240,3 +241,42 @@ def test_an_observing_agent_is_registered_without_being_listed() -> None:
     game = Game(new_players(), Deck(15), {name: shared for name in NAMES}, [log])
     asyncio.run(game.play())
     assert shared.events == log.events and len(log.events) > 0
+
+
+class WatchingAgent(RandomAgent):
+    """A bot that also wants to hear about the changes of what it can see."""
+
+    def __init__(self, seed: int | None = None) -> None:
+        super().__init__(seed)
+        self.updates: list[PlayerView] = []
+
+    async def on_view_update(self, view: PlayerView) -> None:
+        self.updates.append(view)
+
+
+def test_agents_hear_about_their_new_hand_when_it_changes() -> None:
+    players = new_players()
+    watcher = WatchingAgent(1)
+    agents: dict[str, PlayerAgent] = {
+        p.name: RandomAgent(i) for i, p in enumerate(players)
+    }
+    agents[players[0].name] = watcher
+    asyncio.run(Game(players, Deck(5), agents).play())
+
+    # two updates per round (new hand, after the calls) and one more after a pass
+    assert len(watcher.updates) == 2 * N_ROUNDS + 2
+    by_round: dict[int, list[PlayerView]] = {}
+    for view in watcher.updates:
+        by_round.setdefault(view.round_number, []).append(view)
+
+    # round 1: the other players' cards are visible from the start, not our own
+    first = by_round[1][0]
+    assert first.own_hand is None and len(first.hands) == 2
+    # round 6: blind calls, the cards show up after the calls
+    assert by_round[6][0].own_hand is None
+    assert len(by_round[6][1].own_hand or []) == 6
+    # round 8: the update after the pass shows the swapped hand
+    before, after = by_round[8][1].own_hand, by_round[8][2].own_hand
+    assert before is not None and after is not None
+    assert len(after) == 8 and sorted(map(str, before)) != sorted(map(str, after))
+

@@ -121,6 +121,20 @@ class RemotePlayerAgent:
         except OSError as error:
             await self._drop(f"could not send an event ({error!r})")
 
+    async def on_view_update(self, view: PlayerView) -> None:
+        """Sends what the player can see now (their hand changed)."""
+        if not self._connected:
+            return
+        try:
+            await asyncio.wait_for(
+                self._stream.send(
+                    {"kind": "update", "view": JsonCodec.encode_view(view)}
+                ),
+                self._turn_timeout,
+            )
+        except OSError as error:
+            await self._drop(f"could not send a view ({error!r})")
+
     # --- connection ---------------------------------------------------------
 
     async def close(self) -> None:

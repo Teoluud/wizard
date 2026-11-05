@@ -45,6 +45,11 @@ async function handlePacket(packet) {
         case "request":
             handleRequest(packet);
             break;
+        case "update":
+            state.receiveView(packet.view);
+            inGame = true;
+            paint();
+            break;
     }
 }
 
@@ -125,7 +130,9 @@ function passPrompt(packet) {
             paint();
         },
         onConfirm() {
-            answer({ cards: [...selected].map((i) => state.hand[i]) });
+            const cards = [...selected].map((i) => state.hand[i]);
+            state.markPassed(cards);
+            answer({ cards });
         },
     };
 }

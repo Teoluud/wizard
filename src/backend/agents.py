@@ -41,3 +41,15 @@ class GameObserver(Protocol):
     """
 
     async def on_event(self, event: GameEvent) -> None: ...
+
+
+@runtime_checkable
+class ViewObserver(Protocol):
+    """An agent that wants to be told what it can see when that changes.
+
+    The Game calls it after the trump is settled, after the calls and after
+    the cards are passed: moments when a player's hand appears or changes while
+    it isn't their turn (a screen has to show the new cards right away.)
+    """
+
+    async def on_view_update(self, view: PlayerView) -> None: ...

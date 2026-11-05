@@ -1,7 +1,7 @@
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from typing import TypeVar
 
-from src.backend.agents import GameObserver, PlayerAgent
+from src.backend.agents import GameObserver, PlayerAgent, ViewObserver
 from src.backend.cards import Card, Deck
 from src.backend.events import (
     CallMade,
@@ -80,14 +80,24 @@ class Game:
 
         if round_.needs_trump_choice:
             await self._choose_trump(round_)
+        await self._update_views(round_)  # everybody gets their new hand
         await self._calls(round_)
+        await self._update_views(round_)  # blind callers now look at their cards
         pass_rule = round_.pending_pass
         if pass_rule is not None:
             await self._pass_cards(round_, pass_rule)
+            await self._update_views(round_)  # the hands after the swap
         await self._tricks(round_)
 
         round_.score()
         await self._emit(RoundScored(number, self._scores()))
+
+    async def _update_views(self, round_: Round) -> None:
+        """Tells the agents that care what their player can see right now."""
+        for player in round_.players:
+            agent = self.agents[player.name]
+            if isinstance(agent, ViewObserver):
+                await agent.on_view_update(round_.view_for(player))
 
     async def _choose_trump(self, round_: Round) -> None:
         dealer = round_.dealer

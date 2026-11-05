@@ -1,4 +1,4 @@
-import { cardKey, sortHand } from "./cards.js";
+import { cardKey, cardLabel, sortHand } from "./cards.js";
 
 const MAX_LOG = 40;
 
@@ -29,6 +29,7 @@ export class GameState {
         this.hand = [];
         this.others = [];
         this.handHidden = false;
+        this.passed = null; // the cards we passed, until the new hand arrives
         this.log = [];
         this.final = null;
     }
@@ -67,6 +68,31 @@ export class GameState {
             .map(([owner, cards]) => ({ owner, cards: sortHand(cards) }));
     }
 
+    /** The server sent what we can see now (a new hand, for instance). */
+    receiveView(view) {
+        const kept = this.hand.map(cardKey); // the hand without the passed cards
+        this.syncView(view);
+        if (this.passed === null) return;
+        const gone = this.passed.map(cardLabel);
+        const received = [];
+        for (const card of this.hand) {
+            const at = kept.indexOf(cardKey(card));
+            if (at >= 0) kept.splice(at, 1);
+            else received.push(cardLabel(card));
+        }
+        this.say(`You passed ${gone.join(", ")} and received ${received.join(", ")}`);
+        this.passed = null;
+    }
+
+    /** We chose the cards to pass: they leave the hand at once. */
+    markPassed(cards) {
+        this.passed = cards;
+        for (const card of cards) {
+            const at = this.hand.findIndex((c) => cardKey(c) === cardKey(card));
+            if (at >= 0) this.hand.splice(at, 1);
+        }
+    }
+
     /** Applies an event; returns how long the page should wait before the next. */
     applyEvent(ev) {
         switch (ev.event) {
@@ -100,7 +126,7 @@ export class GameState {
                 this.say(`Everybody passed ${ev.count} cards to the ${ev.direction}`);
                 break;
             case "card_played":
-                this.table.push({ player: ev.player, card:ev.card });
+                this.table.push({ player: ev.player, card: ev.card });
                 this.removeCard(ev.player, ev.card);
                 break;
             case "trick_won":
