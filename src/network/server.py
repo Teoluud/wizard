@@ -172,7 +172,7 @@ def main() -> None:
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument(
-        "--seats", type=int, default=3, help="total seats at the table (2-6)"
+        "--seats", type=int, default=6, help="total seats at the table (2-6)"
     )
     parser.add_argument(
         "--humans",

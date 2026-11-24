@@ -25,7 +25,8 @@ AgentFactory = Callable[[int], PlayerAgent]
 
 KINDS: dict[str, AgentFactory] = {
     "random": lambda seed: RandomAgent(seed),
-    "heuristic": lambda seed: HeuristicAgent(),
+    "heuristic": lambda seed: HeuristicAgent(None),
+    "h-streak": lambda seed: HeuristicAgent(),
     "test": lambda seed: TestHeuristicAgent(),
 }
 

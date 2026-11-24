@@ -6,13 +6,17 @@ from src.ai.knowledge import (
     beats,
     blind_win_chance,
     card_power,
+    expected_score,
     expected_tricks,
     hold_chance,
+    trick_chances,
+    tricks_distribution,
     unseen_cards,
 )
+from src.ai.streak import ZeroStreakWatch
 from src.backend.cards import Card, Color
 from src.backend.events import CardPlayed, GameEvent, RoundStarted
-from src.backend.rules import PassRule
+from src.backend.rules import ZERO_STREAK_BONUS, PassRule, ZeroStreakBonus
 from src.backend.view import PlayerView
 
 # When it wants a trick, the bot plays the weakest card that is at least this
@@ -43,10 +47,12 @@ class HeuristicAgent:
     get rid of its strong cards in the tricks it doesn't want.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, zero_streak: ZeroStreakBonus | None = ZERO_STREAK_BONUS) -> None:
         self._played: list[Card] = []
+        self._streak = ZeroStreakWatch(zero_streak)
 
     async def on_event(self, event: GameEvent) -> None:
+        self._streak.on_event(event)
         match event:
             case RoundStarted():
                 self._played.clear()
@@ -70,11 +76,22 @@ class HeuristicAgent:
         )
 
     async def ask_call(self, view: PlayerView, forbidden_call: int | None) -> int:
-        expected = self._expected_tricks(view)
+        chances = self._trick_chances(view)
+        expected = sum(chances)
         allowed = [c for c in range(view.round_number + 1) if c != forbidden_call]
-        return min(
+        usual = min(
             allowed, key=lambda call: (abs(call - expected), call)
-        )  # closes to the expected tricks; the lower call wins a tie
+        )  # closest to the expected tricks; the lower call wins a tie
+        if usual == 0 or 0 not in allowed:
+            return usual
+
+        # Still on a perfect streak? Then a 0 may be worth more than the usual call.
+        bonus = self._streak.zero_bonus(view.player_name, view.round_number)
+        if bonus <= 0.0:
+            return usual
+        odds = tricks_distribution(chances)
+        zero_value = expected_score(0, odds) + bonus * odds[0]
+        return 0 if zero_value > expected_score(usual, odds) else usual
 
     async def ask_card_to_pass(
         self, view: PlayerView, rule: PassRule, recipient: str
@@ -161,16 +178,18 @@ class HeuristicAgent:
             return max(sure_losers, key=power)  # dump the strongest card that loses.
         return min(legal_cards, key=lambda card: (hold(card), power(card)))
 
-    def _expected_tricks(self, view: PlayerView) -> float:
+    def _trick_chances(self, view: PlayerView) -> list[float]:
+        """The chance of winning each of the tricks of the round, one per card."""
         unseen = self.unseen_for(view)
         opponents = len(view.players) - 1
         hand = view.own_hand
         if hand is not None:
-            return expected_tricks(hand, unseen, view.trump.color, opponents)
+            return trick_chances(hand, unseen, view.trump.color, opponents)
         blind = blind_win_chance(view, unseen)
         if blind is not None:
-            return blind  # round 1: we see the others' cards, not ours
-        return view.round_number / len(view.players)  # fully blind: the fair share
+            return [blind]  # round 1: we see the others' cards, not ours
+        # fully blind: every trick is worth the fair share
+        return [1 / len(view.players)] * view.round_number
 
     def unseen_for(self, view: PlayerView) -> list[Card]:
         """The cards that could still be in the opponents' hands."""

@@ -95,10 +95,10 @@ def _calibration_exponent(values: Sequence[float], target_mean: float) -> float:
     return high  # the values are probabilities (< 1)
 
 
-def expected_tricks(
+def trick_chances(
     hand: Sequence[Card], unseen: Sequence[Card], trump: Color | None, opponents: int
-) -> float:
-    """How many tricks `hand` should win, adding up what each card can do.
+) -> list[float]:
+    """The chance that each card of `hand` wins a trick of its own.
 
     Treating every card as if it led the trick is too optimistic: an average
     hand would be worth more than its fair share of (hand size / players) tricks. So the
@@ -107,10 +107,40 @@ def expected_tricks(
     """
     pool = [hold_chance(card, unseen, trump, opponents) for card in (*unseen, *hand)]
     exponent = _calibration_exponent(pool, 1 / (opponents + 1))
-    total = sum(
-        hold_chance(card, unseen, trump, opponents) ** exponent for card in hand
-    )
-    return min(total, float(len(hand)))
+    return [hold_chance(card, unseen, trump, opponents) ** exponent for card in hand]
+
+
+def expected_tricks(
+    hand: Sequence[Card], unseen: Sequence[Card], trump: Color | None, opponents: int
+) -> float:
+    """How many tricks `hand` should win, adding up what each card can do."""
+    return sum(trick_chances(hand, unseen, trump, opponents))
+
+
+def tricks_distribution(chances: Sequence[float]) -> list[float]:
+    """The odds of winning 0, 1, 2, ... tricks, if each trick is won on its own.
+
+    `chances[i]` is the chance of the i-th trick; the result has one more entry
+    than `chances` (the option 0).
+    """
+    odds = [1.0]
+    for chance in chances:
+        odds = [
+            (odds[k] if k < len(odds) else 0.0) * (1.0 - chance)
+            + (odds[k - 1] if k > 0 else 0.0) * chance
+            for k in range(len(odds) + 1)
+        ]
+    return odds
+
+
+def call_score(call: int, won: int) -> int:
+    """The points of a round (the same as `Player.update_points`)."""
+    return call + 2 if call == won else -abs(call - won)
+
+
+def expected_score(call: int, odds: Sequence[float]) -> float:
+    """The average points of a round for `call`, given the `odds` of each result."""
+    return sum(chance * call_score(call, won) for won, chance in enumerate(odds))
 
 
 def blind_win_chance(view: PlayerView, unseen: Sequence[Card]) -> float | None:
