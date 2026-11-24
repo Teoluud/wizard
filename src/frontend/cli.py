@@ -1,5 +1,12 @@
 from src.backend.cards import Card, Color, Jester, Wizard
-from src.backend.events import GameEvent, GameOver, GameStarted, RoundScored, TrickWon
+from src.backend.events import (
+    BonusAwarded,
+    GameEvent,
+    GameOver,
+    GameStarted,
+    RoundScored,
+    TrickWon,
+)
 from src.backend.rules import PassRule
 from src.backend.view import PlayerStatus, PlayerView, Trump
 
@@ -105,6 +112,8 @@ class CliInterface:
                 print(f"Trick: {self._format_table(table)}")
                 print(f"-> {winner} wins the trick.")
                 input("\nPress Enter to continue...")
+            case BonusAwarded(player=player, points=points, reason=reason):
+                print(f"\nBonus: {player} gets {points} points ({reason})!")
             case RoundScored(scores=scores):
                 self._show_scores(scores)
             case GameOver(scores=scores):

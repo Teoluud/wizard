@@ -11,6 +11,7 @@ from collections import deque
 
 from src.backend.cards import Card, Color, Jester, Wizard
 from src.backend.events import (
+    BonusAwarded,
     CallMade,
     CardPlayed,
     CardsPassed,
@@ -146,6 +147,8 @@ class NetworkCliAgent:
                 plays = ", ".join(f"{p} {self._card(c)}" for p, c in table)
                 self._last_trick = f"{plays} -> {self._who(winner)}"
                 self._say(f"{self._bold('Trick:')} {self._who(winner)} wins")
+            case BonusAwarded(player=player, points=points, reason=reason):
+                self._say(f"Bonus: {self._who(player)} +{points} ({reason})")
             case RoundScored(round_number=number, scores=scores):
                 self._say(self._round_summary(number, scores))
                 self._points = {s.name: s.points for s in scores}

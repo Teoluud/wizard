@@ -10,6 +10,7 @@ const DELAYS = {
     cards_passed: 700,
     card_played: 650,
     trick_won: 1700,
+    bonus_awarded: 1800,
     round_scored: 1800,
 };
 
@@ -133,6 +134,9 @@ export class GameState {
                 this.winner = ev.winner;
                 this.status(ev.winner).tricks += 1;
                 this.say(`${ev.winner} wins the trick`);
+                break;
+            case "bonus_awarded":
+                this.say(`Bonus: ${ev.player} +${ev.points} (${ev.reason})`);
                 break;
             case "round_scored":
                 for (const s of ev.scores) this.status(s.name).points = s.points;

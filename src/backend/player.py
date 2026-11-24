@@ -42,6 +42,10 @@ class Player:
         else:
             self._points -= abs(self._call - self._tricks_won)
 
+    def add_bonus(self, points: int) -> None:
+        """Extra points that don't come from a round's call."""
+        self._points += points
+
     @property
     def call(self) -> int | None:
         return self._call

@@ -45,5 +45,19 @@ SPECIAL_ROUNDS: dict[int, RoundRules] = {
 }
 
 
+@dataclass(frozen=True)
+class ZeroStreakBonus:
+    """Succeeding with a call of 0 in every round up to `until_round` pays `points`.
+
+    "Succeeding" means calling 0 and winning no trick. The bonus is paid when
+    round `until_round` ends.
+    """
+    until_round: int = 6
+    points: int = 4
+
+
+ZERO_STREAK_BONUS = ZeroStreakBonus()
+
+
 def rules_for(round_number: int) -> RoundRules:
     return SPECIAL_ROUNDS.get(round_number, RoundRules())

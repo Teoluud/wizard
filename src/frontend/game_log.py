@@ -1,5 +1,6 @@
 from src.backend.cards import Card, Jester, Wizard
 from src.backend.events import (
+    BonusAwarded,
     CallMade,
     CardPlayed,
     CardsPassed,
@@ -58,6 +59,8 @@ class GameLog:
                 print(f"    {player} plays {describe_card(card)}")
             case TrickWon(winner=winner):
                 print(f"  -> {winner} wins the trick")
+            case BonusAwarded(player=player, points=points, reason=reason):
+                print(f"  bonus: {player} +{points} ({reason})")
             case RoundScored(scores=scores):
                 print(f"  points: {describe_scores(scores)}")
             case GameOver(scores=scores):

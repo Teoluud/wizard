@@ -53,6 +53,15 @@ class TrickWon:
 
 
 @dataclass(frozen=True)
+class BonusAwarded:
+    """A player earned extra points (the bonus is already in their score)."""
+
+    player: str
+    points: int
+    reason: str
+
+
+@dataclass(frozen=True)
 class RoundScored:
     round_number: int
     scores: list[PlayerStatus]
@@ -71,6 +80,7 @@ GameEvent = (
     | CardsPassed
     | CardPlayed
     | TrickWon
+    | BonusAwarded
     | RoundScored
     | GameOver
 )

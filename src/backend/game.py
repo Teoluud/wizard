@@ -2,8 +2,10 @@ from collections.abc import Awaitable, Callable, Mapping, Sequence
 from typing import TypeVar
 
 from src.backend.agents import GameObserver, PlayerAgent, ViewObserver
+from src.backend.bonus import ZeroStreakTracker
 from src.backend.cards import Card, Deck
 from src.backend.events import (
+    BonusAwarded,
     CallMade,
     CardPlayed,
     CardsPassed,
@@ -17,7 +19,7 @@ from src.backend.events import (
 )
 from src.backend.player import Player
 from src.backend.round import Round
-from src.backend.rules import PassRule, rules_for
+from src.backend.rules import ZERO_STREAK_BONUS, PassRule, ZeroStreakBonus, rules_for
 from src.backend.view import PlayerStatus
 
 T = TypeVar("T")
@@ -43,6 +45,7 @@ class Game:
         deck: Deck,
         agents: Mapping[str, PlayerAgent],
         observers: Sequence[GameObserver] = (),
+        zero_streak: ZeroStreakBonus | None = ZERO_STREAK_BONUS,
     ) -> None:
         """`agents` maps each player's name to the agent that plays for them."""
         names = [p.name for p in players]
@@ -64,6 +67,9 @@ class Game:
                 self.observers.append(agent)
 
         self.n_rounds = len(deck) // len(players)
+        self._zero_streak = (
+            ZeroStreakTracker(zero_streak, names) if zero_streak is not None else None
+        )
 
     async def play(self) -> None:
         await self._emit(GameStarted([p.name for p in self.players], self.n_rounds))
@@ -90,6 +96,7 @@ class Game:
         await self._tricks(round_)
 
         round_.score()
+        await self._award_bonuses(round_)
         await self._emit(RoundScored(number, self._scores()))
 
     async def _update_views(self, round_: Round) -> None:
@@ -180,6 +187,15 @@ class Game:
 
     def _scores(self) -> list[PlayerStatus]:
         return [PlayerStatus.of(p) for p in self.players]
+
+    async def _award_bonuses(self, round_: Round) -> None:
+        """Pays the bonuses earned in the round that was just scored."""
+        if self._zero_streak is None:
+            return
+        by_name = {p.name: p for p in self.players}
+        for award in self._zero_streak.record_round(round_.number, round_.players):
+            by_name[award.player].add_bonus(award.points)
+            await self._emit(BonusAwarded(award.player, award.points, award.reason))
 
     async def _emit(self, event: GameEvent) -> None:
         """Emits the event for all the observers."""

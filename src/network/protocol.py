@@ -5,6 +5,7 @@ from typing import Any, Mapping, Protocol, cast
 
 from src.backend.cards import Card, Color
 from src.backend.events import (
+    BonusAwarded,
     CallMade,
     CardPlayed,
     CardsPassed,
@@ -146,6 +147,13 @@ class JsonCodec:
                     "winner": winner,
                     "table": [[p, c.to_dict()] for p, c in table],
                 }
+            case BonusAwarded(player=player, points=points, reason=reason):
+                return {
+                    "event": "bonus_awarded",
+                    "player": player,
+                    "points": points,
+                    "reason": reason,
+                }
             case RoundScored(round_number=num, scores=scores):
                 return {
                     "event": "round_scored",
@@ -196,6 +204,12 @@ class JsonCodec:
                 return TrickWon(
                     winner=str(data["winner"]),
                     table=[(str(p), Card.from_dict(c)) for p, c in data["table"]],
+                )
+            case "bonus_awarded":
+                return BonusAwarded(
+                    player=str(data["player"]),
+                    points=int(data["points"]),
+                    reason=str(data["reason"]),
                 )
             case "round_scored":
                 return RoundScored(
